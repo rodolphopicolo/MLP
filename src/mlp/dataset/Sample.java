@@ -1,15 +1,8 @@
 package mlp.dataset;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 /**
  *
@@ -21,10 +14,12 @@ public class Sample {
     
     private final String label;
     private final double[] features;
+    private final Dataset dataset;
     
-    public Sample(String label, double[] features){
+    public Sample(String label, double[] features, Dataset dataset){
         this.label = label;
         this.features = new double[features.length];
+        this.dataset = dataset;
         System.arraycopy(features, 0, this.features, 0, features.length);
     }
     
@@ -40,10 +35,19 @@ public class Sample {
         return this.label;
     }
     
+    public int activateNeuron(){
+        return this.dataset.outputNeuronIndexForLabel(this.label);
+    }
+    
     public void write(OutputStream outputStream) throws UnsupportedEncodingException, IOException{
-        outputStream.write(this.label.getBytes("UTF-8"));
+        String message = "Label " + this.label;
+        message += "\tNeuron " + this.activateNeuron();
+        message += "\tFeatures: ";
+        outputStream.write(message.getBytes("UTF-8"));
         for(int i = 0; i < features.length; i++){
-            outputStream.write('\t');
+            if(i > 0){
+                outputStream.write(';');
+            }
             outputStream.write(String.valueOf(features[i]).getBytes("UTF-8"));
         }
     }

@@ -1,14 +1,7 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mlp;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import mlp.dataset.Dataset;
@@ -61,8 +54,8 @@ public class Launcher {
         }
         System.out.println("");
 
-        MLP mlp = new MLP(topology, dataset.getSize());
+        MLP mlp = new MLP(topology, dataset.getSize(), dataset.getSample(0).featuresQuantity());
         mlp.inicializeWeights();
-        mlp.train(dataset, 5, null, null);
+        mlp.train(dataset, 0.3, 0.01, 100, null);
     }
 }

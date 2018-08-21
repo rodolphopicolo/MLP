@@ -8,7 +8,10 @@ import mlp.exception.InputSizeException;
  * @author rodolpho
  */
 public class Neuron {
+    private final int dentrites;
     private final double[] weights;
+    private final double[] corrections;
+    private double[] inputValues;
     private double output;
     private double bias;
     private final ActivationFunction activationFunction;
@@ -16,11 +19,15 @@ public class Neuron {
     private final int layerPosition;
     private final int neuronPosition;
     
+    private double error;
+    
     private final double MIN_INITIALIZATION_VALUE = -0.5;
     private final double MAX_INITIALIZATION_VALUE =  0.5;
     
-    public Neuron(int axons, ActivationFunction activationFunction, int layerPosition, int neuronPosition){
-        this.weights = new double[axons];
+    public Neuron(int dentrites, ActivationFunction activationFunction, int layerPosition, int neuronPosition){
+        this.dentrites = dentrites;
+        this.weights = new double[dentrites];
+        this.corrections = new double[dentrites];
         this.activationFunction = activationFunction;
         
         this.layerPosition = layerPosition;
@@ -29,6 +36,28 @@ public class Neuron {
     
     public double getOutput(){
         return this.output;
+    }
+    
+    public double[] getWeights(){
+        return this.weights;
+    }
+    
+    public void setCorrection(int index, double value){
+        this.corrections[index] = value;
+    }
+    
+    public void setError(double error){
+        this.error = error;
+    }
+    
+    public double getError(){
+        return this.error;
+    }
+    
+    void applyCorrection(){
+        for(int i = 0; i < dentrites; i++){
+            this.weights[i] = this.weights[i] + this.corrections[i];
+        }
     }
     
     public void initializeWeightsNBias(){
@@ -43,6 +72,8 @@ public class Neuron {
         if(this.weights.length != inputValues.length){
             throw new InputSizeException();
         }
+        
+        this.inputValues = inputValues;
         
         double sum = this.bias;
         int size = inputValues.length;
@@ -60,4 +91,18 @@ public class Neuron {
         String text = "Neuron [" + String.valueOf(this.layerPosition) + ", " + String.valueOf(this.neuronPosition) + "]";
         return text;
     }
+    
+    public double getWeight(int index){
+        return this.weights[index];
+    }
+    
+    public double getInputValue(int index){
+        return this.inputValues[index];
+    }
+    
+    public int dentrites(){
+        return this.dentrites;
+    }
+    
+    
 }

@@ -16,13 +16,23 @@ import java.util.List;
  */
 public class Dataset {
 
-    private final List<Sample> samples;
-    private final HashMap<String, Integer> labelsMap;
+    private List<Sample> samples;
+    private HashMap<String, Integer> labelsMap;
     
-    private Dataset(List<Sample> samples, HashMap<String, Integer> labelsMap){
+    public int outputNeuronIndexForLabel(String label){
+        return this.labelsMap.get(label);
+    }
+    
+    private Dataset(){}
+    
+    private void setSamples(List<Sample> samples){
         this.samples = samples;
+    }
+    
+    private void setLabelsMap(HashMap<String, Integer> labelsMap){
         this.labelsMap = labelsMap;
     }
+
     
     public void write(OutputStream outputStream) throws IOException{
         for(int i = 0; i < samples.size(); i++){
@@ -54,6 +64,7 @@ public class Dataset {
         BufferedReader bufferedReader = new BufferedReader(fileReader);
         String line = bufferedReader.readLine();
         List<Sample> samples = new ArrayList();
+        Dataset dataset = new Dataset();
         while(line != null){
 
             String[] splitted = line.split("\t");
@@ -76,12 +87,13 @@ public class Dataset {
                 labelsMap.put(label, lastLabelIndex);
             }
             
-            Sample sample = new Sample(label, features);
+            Sample sample = new Sample(label, features, dataset);
             samples.add(sample);
             
             line = bufferedReader.readLine();
         }
-        Dataset dataset = new Dataset(samples, labelsMap);
+        dataset.setSamples(samples);
+        dataset.setLabelsMap(labelsMap);
         return dataset;
     }    
 }
