@@ -67,20 +67,23 @@ public class MLP {
             public void run() {
                 try {
                     int datasetSize = dataset.getSize();
-
+                    int epoch = 0;
                     trainingState.startTraining();
                     while (true) {
+                        double datasetError = 0;
                         for (int i = 0; i < datasetSize; i++) {
+                            epoch++;
                             Sample sample = dataset.getSample(i);
                             feedForward(sample.getFeatures());
                             
                             calculateError(dataset, sample);
+                            datasetError += MLP.this.currentError;
                             
-                            if (trainingState.informCompleteEpoch(MLP.this.currentError, 1)) {
+                            if (trainingState.informCompleteEpoch(datasetError, 1)) {
                                 return;
                             }
                             backpropagate(learningRate, dataset, sample);
-                            displayOutput(dataset, sample);
+                            displayOutput(sample, epoch, datasetError);
                         }
                     }
                 } catch (Exception ex) {
@@ -124,10 +127,14 @@ public class MLP {
                 int dentrites = neuron.dentrites();
                 double outputValue = neuron.getOutput();
                 
-                double expectedValue = dataset.outputNeuronIndexForLabel(sample.getLabel());
+                
+                        
+                int expectedActiveNeuron = dataset.outputNeuronIndexForLabel(sample.getLabel());
+                double expectedValue = (expectedActiveNeuron == j ? 1: 0);
+                        
                 double[] ws = neuron.getWeights();
                 for(int k = 0; k < dentrites; k++){
-                    double w = ws[k];
+                    //double w = ws[k];
 
                     double inputValue = neuron.getInputValue(k);
                     
@@ -180,8 +187,9 @@ public class MLP {
         return correction;
     }
     
-    private void displayOutput(Dataset dataset, Sample sample) throws IOException{
+    private void displayOutput(Sample sample, int epoch, double datasetError) throws IOException{
         System.out.println("=================================================");
+        System.out.println("Epoch " + epoch + " Dataset error: " + datasetError);
         sample.write(System.out);
         System.out.println("\tError: " + this.currentError);
         Neuron[] lastLayer = this.layers.get(this.layers.size() - 1);
