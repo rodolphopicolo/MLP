@@ -56,6 +56,6 @@ public class Launcher {
 
         MLP mlp = new MLP(topology, dataset.getSize(), dataset.getSample(0).featuresQuantity());
         mlp.inicializeWeights();
-        mlp.train(dataset, 0.3, 0.01, 10000, null);
+        mlp.train(dataset, 0.3, 0.01, 100, null);
     }
 }
