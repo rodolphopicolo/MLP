@@ -1,7 +1,10 @@
 package mlp;
 
+import java.util.List;
 import mlp.activation.ActivationFunction;
+import mlp.dataset.Sample;
 import mlp.exception.InputSizeException;
+import mlp.exception.NoSampleException;
 
 /**
  *
@@ -10,11 +13,18 @@ import mlp.exception.InputSizeException;
 public class Neuron {
     private final int dentrites;
     private final double[] weights;
-    private final double[] corrections;
+    private final double[] correctionsFactor;
     private double[] inputValues;
     private double output;
     private double bias;
+    private double biasCorrectionFactor;
     private final ActivationFunction activationFunction;
+    
+    private Sample currentSample = null;
+    
+    private final List<Neuron[]> layers;
+    
+    private Double delta = null;
     
     private final int layerPosition;
     private final int neuronPosition;
@@ -24,14 +34,16 @@ public class Neuron {
     private final double MIN_INITIALIZATION_VALUE = -0.5;
     private final double MAX_INITIALIZATION_VALUE =  0.5;
     
-    public Neuron(int dentrites, ActivationFunction activationFunction, int layerPosition, int neuronPosition){
+    public Neuron(int dentrites, ActivationFunction activationFunction, int layerPosition, int neuronPosition, List<Neuron[]> layers){
         this.dentrites = dentrites;
         this.weights = new double[dentrites];
-        this.corrections = new double[dentrites];
+        this.correctionsFactor = new double[dentrites];
         this.activationFunction = activationFunction;
         
         this.layerPosition = layerPosition;
         this.neuronPosition = neuronPosition;
+        
+        this.layers = layers;
     }
     
     public double getOutput(){
@@ -43,7 +55,7 @@ public class Neuron {
     }
     
     public void setCorrection(int index, double value){
-        this.corrections[index] = value;
+        this.correctionsFactor[index] = value;
     }
     
     public void setError(double error){
@@ -56,7 +68,7 @@ public class Neuron {
     
     void applyCorrection(){
         for(int i = 0; i < dentrites; i++){
-            this.weights[i] = this.weights[i] + this.corrections[i];
+            this.weights[i] = this.weights[i] + this.correctionsFactor[i];
         }
     }
     
@@ -68,12 +80,17 @@ public class Neuron {
         }
     }
     
-    public double activate(double[] inputValues) throws InputSizeException{
-        if(this.weights.length != inputValues.length){
+    public double activate(double[] input) throws InputSizeException, NoSampleException{
+
+        if(this.currentSample == null){
+            throw new NoSampleException ();
+        }
+        
+        if(this.weights.length != input.length){
             throw new InputSizeException();
         }
         
-        this.inputValues = inputValues;
+        this.inputValues = input;
         
         double sum = this.bias;
         int size = inputValues.length;
@@ -104,5 +121,54 @@ public class Neuron {
         return this.dentrites;
     }
     
+    public void setCurrentSample(Sample sample){
+        this.currentSample = sample;
+    }
     
+
+    public boolean isOutputLayer(){
+        return layerPosition == (layers.size() - 1);
+    }
+    
+    public double calculateDelta(){
+        if(isOutputLayer()){
+            
+            double sampleValue = 0;
+            if (this.currentSample.activateNeuron() == this.neuronPosition){
+                sampleValue = 1;
+            }
+            
+            this.delta = (sampleValue - this.output) * this.output * (1 - this.output);
+        } else {
+            
+            double nextLayerDeltaSum = 0;
+            
+            Neuron[] nextLayer = layers.get(this.layerPosition + 1);
+            for(int i = 0; i < nextLayer.length; i++){                
+                Neuron neuronNextLayer = nextLayer[i];
+                nextLayerDeltaSum += neuronNextLayer.calculateDelta() * neuronNextLayer.getWeight(this.neuronPosition);
+            }
+            
+            this.delta = nextLayerDeltaSum * (this.output * (1 - this.output));
+        }
+
+        return this.delta;
+    }
+    
+    public void calculateCorrectionsFactor(double learningRate){
+        for(int i = 0; i < this.correctionsFactor.length; i++){
+            double deltaW = learningRate * this.delta * this.inputValues[i];
+            this.correctionsFactor[i] = deltaW;
+        }
+        this.biasCorrectionFactor = learningRate * this.delta;
+    }
+    
+    public void applyCorrections(){
+        for(int i = 0; i < this.weights.length; i++){
+            this.weights[i] = this.weights[i] - this.correctionsFactor[i];
+        }
+        bias = bias - this.biasCorrectionFactor;
+    }
+    
+
 }

@@ -7,6 +7,7 @@ import java.util.List;
 import mlp.activation.Sigmoid;
 import mlp.dataset.Dataset;
 import mlp.exception.InputSizeException;
+import mlp.exception.NoSampleException;
 import mlp.loss.LossFunction;
 import mlp.loss.MeanSquaredError;
 
@@ -43,7 +44,7 @@ public class MLP {
         int layerPosition = layers.size();
         Neuron[] layer = new Neuron[neurons];
         for (int neuronPosition = 0; neuronPosition < neurons; neuronPosition++) {
-            layer[neuronPosition] = new Neuron(parameters, new Sigmoid(), layerPosition, neuronPosition);
+            layer[neuronPosition] = new Neuron(parameters, new Sigmoid(), layerPosition, neuronPosition, layers);
         }
 
         layers.add(layer);
@@ -74,7 +75,7 @@ public class MLP {
                         for (int i = 0; i < datasetSize; i++) {
                             epoch++;
                             Sample sample = dataset.getSample(i);
-                            feedForward(sample.getFeatures());
+                            feedForward(sample);
                             
                             calculateError(dataset, sample);
                             datasetError += MLP.this.currentError;
@@ -82,7 +83,7 @@ public class MLP {
                             if (trainingState.informCompleteEpoch(datasetError, 1)) {
                                 return;
                             }
-                            backpropagate(learningRate, dataset, sample);
+                            backpropagate(learningRate, sample);
                             displayOutput(sample, epoch, datasetError);
                         }
                     }
@@ -100,9 +101,9 @@ public class MLP {
 
     }
 
-    private void feedForward(double[] inputValuesForInputLayer) throws InputSizeException {
+    private void feedForward(Sample sample) throws InputSizeException, NoSampleException {
 
-        double[] currentInput = inputValuesForInputLayer;
+        double[] currentInput = sample.getFeatures();;
 
         for (int i = 0; i < this.layers.size(); i++) {
             Neuron[] layer = this.layers.get(i);
@@ -111,6 +112,7 @@ public class MLP {
 
             for (int j = 0; j < layer.length; j++) {
                 Neuron neuron = layer[j];
+                neuron.setCurrentSample(sample);
                 double output = neuron.activate(currentInput);
                 inputForNextLayer[j] = output;
             }
@@ -119,36 +121,39 @@ public class MLP {
         }
     }
 
-    private void backpropagate(double learningRate, Dataset dataset, Sample sample) {
+    private void backpropagate(double learningRate, Sample sample) {
         for(int i = layers.size() - 1; i >= 0; i--){
             Neuron[] neurons =  layers.get(i);
             for(int j = 0; j < neurons.length; j++){
                 Neuron neuron = neurons[j];
-                int dentrites = neuron.dentrites();
-                double outputValue = neuron.getOutput();
-                
-                
-                        
-                int expectedActiveNeuron = dataset.outputNeuronIndexForLabel(sample.getLabel());
-                double expectedValue = (expectedActiveNeuron == j ? 1: 0);
-                        
-                double[] ws = neuron.getWeights();
-                for(int k = 0; k < dentrites; k++){
-                    //double w = ws[k];
 
-                    double inputValue = neuron.getInputValue(k);
-                    
-                    double correction;
-                    if(i == layers.size() - 1){
-                        //OutputLayer
-                        correction = calculateCorrectionFactorForOutputLayer(learningRate, expectedValue, outputValue, inputValue);
-                    } else {
-                        //HiddenLayer
-                        double deltaForOutputLayer = deltaForOutputLayer(expectedValue, outputValue);
-                        correction = calculateCorrectionFactorForHiddenLayer(deltaForOutputLayer, ws, inputValue, learningRate, outputValue);
-                    }
-                    neuron.setCorrection(k, correction);
-                }
+                neuron.calculateDelta();
+                neuron.calculateCorrectionsFactor(learningRate);
+                
+//                int dentrites = neuron.dentrites();
+//                double outputValue = neuron.getOutput();
+//                
+//                
+//                int expectedActiveNeuron = sample.activateNeuron();
+//                double expectedValue = (expectedActiveNeuron == j ? 1: 0);
+//                        
+//                double[] ws = neuron.getWeights();
+//                for(int k = 0; k < dentrites; k++){
+//                    //double w = ws[k];
+//
+//                    double inputValue = neuron.getInputValue(k);
+//                    
+//                    double correction;
+//                    if(i == layers.size() - 1){
+//                        //OutputLayer
+//                        correction = calculateCorrectionFactorForOutputLayer(learningRate, expectedValue, outputValue, inputValue);
+//                    } else {
+//                        //HiddenLayer
+//                        double deltaForOutputLayer = deltaForOutputLayer(expectedValue, outputValue);
+//                        correction = calculateCorrectionFactorForHiddenLayer(deltaForOutputLayer, ws, inputValue, learningRate, outputValue);
+//                    }
+//                    neuron.setCorrection(k, correction);
+//                }
             }
         }
         
