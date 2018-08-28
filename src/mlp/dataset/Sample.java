@@ -9,47 +9,58 @@ import java.io.UnsupportedEncodingException;
  * @author rodolpho
  */
 public class Sample {
-    
-    private static final double NUMERIC_LABEL_INCREMENT = 1;
-    
-    private final String label;
-    private final double[] features;
-    private final Dataset dataset;
-    
-    public Sample(String label, double[] features, Dataset dataset){
-        this.label = label;
-        this.features = new double[features.length];
-        this.dataset = dataset;
-        System.arraycopy(features, 0, this.features, 0, features.length);
-    }
-    
-    public int featuresQuantity(){
-        return this.features.length;
-    }
-    
-    public double[] getFeatures(){
-        return this.features;
-    }
-    
-    public String getLabel(){
-        return this.label;
-    }
-    
-    public int activateNeuron(){
-        return this.dataset.outputNeuronIndexForLabel(this.label);
-    }
-    
-    public void write(OutputStream outputStream) throws UnsupportedEncodingException, IOException{
-        String message = "Label " + this.label;
-        message += "\tNeuron " + this.activateNeuron();
-        message += "\tFeatures: ";
-        outputStream.write(message.getBytes("UTF-8"));
-        for(int i = 0; i < features.length; i++){
-            if(i > 0){
-                outputStream.write(';');
+
+    private final double[] input;
+    private final double[] output;
+    private final String textRepresentation;
+
+    public Sample(double[] input, double[] output) {
+        this.input = new double[input.length];
+        this.output = new double[output.length];
+
+        System.arraycopy(input, 0, this.input, 0, input.length);
+        System.arraycopy(output, 0, this.output, 0, output.length);
+
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < input.length; i++) {
+            if (i > 0) {
+                stringBuilder.append(";");
             }
-            outputStream.write(String.valueOf(features[i]).getBytes("UTF-8"));
+            stringBuilder.append(String.valueOf(input[i]));
         }
+        stringBuilder.append("|");
+        for (int i = 0; i < output.length; i++) {
+            if (i > 0) {
+                stringBuilder.append(";");
+            }
+            stringBuilder.append(String.valueOf(output[i]));
+        }
+        this.textRepresentation = stringBuilder.toString();
     }
-    
+
+    public int inputSize() {
+        return this.input.length;
+    }
+
+    public double[] getInput() {
+        return this.input;
+    }
+
+    public int outputSize() {
+        return this.output.length;
+    }
+
+    public double[] getOutput() {
+        return this.output;
+    }
+
+    @Override
+    public String toString() {
+        return this.textRepresentation;
+    }
+
+    public void write(OutputStream outputStream) throws UnsupportedEncodingException, IOException {
+        outputStream.write(textRepresentation.getBytes("UTF-8"));
+    }
+
 }

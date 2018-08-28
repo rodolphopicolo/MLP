@@ -3,18 +3,12 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/doc/training-data.txt</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/dataset/Sample.java</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/Helper.java</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/doc/training-data-1-sample.txt</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/MLP.java</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/StopCondition.java</file>
             <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/dataset/Dataset.java</file>
+            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/MLP.java</file>
             <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/Neuron.java</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/TrainingState.java</file>
             <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/Launcher.java</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/loss/LossFunction.java</file>
-            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/loss/MeanSquaredError.java</file>
+            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/dataset/Sample.java</file>
+            <file>file:/home/rodolpho/dev/mine/AI/MLP/src/mlp/activation/Sigmoid.java</file>
         </group>
     </open-files>
 </project-private>

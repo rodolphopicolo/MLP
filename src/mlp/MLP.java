@@ -1,6 +1,8 @@
 package mlp;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import mlp.dataset.Sample;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,35 +20,36 @@ import mlp.loss.MeanSquaredError;
 public class MLP {
 
     private final List<Neuron[]> layers;
-    private final int inputParametersQuantity;
+    private final int inputSize;
     private final int[] topology;
     private double currentError;
 
-    public MLP(int[] topology, int inputParametersQuantity, int datasetFeaturesQuantity) {
+    public MLP(int[] hiddenLayersTopology, int inputSize, int outputSize) {
         this.layers = new ArrayList();
-        this.topology = topology;
-        this.inputParametersQuantity = inputParametersQuantity;
+        this.topology = new int[hiddenLayersTopology.length + 1];
+        
+        System.arraycopy(hiddenLayersTopology, 0, this.topology, 0, hiddenLayersTopology.length);
+        this.topology[this.topology.length - 1] = outputSize;
+        
+        this.inputSize = inputSize;
 
         for (int i = 0; i < topology.length; i++) {
-            addLayer(topology[i], datasetFeaturesQuantity);
+            int layerInputSize;
+            if(i == 0){
+                layerInputSize = inputSize;
+            } else {
+                layerInputSize = topology[i - 1];
+            }
+            addLayer(topology[i], layerInputSize);
         }
     }
 
-    private void addLayer(int neurons, int datasetFeaturesQuantity) {
-        int parameters;
-        if (layers.isEmpty()) {
-            //input layer
-            parameters = datasetFeaturesQuantity;
-        } else {
-            parameters = layers.get(layers.size() - 1).length;
-        }
-
+    private void addLayer(int neuronSize, int inputSize) {
         int layerPosition = layers.size();
-        Neuron[] layer = new Neuron[neurons];
-        for (int neuronPosition = 0; neuronPosition < neurons; neuronPosition++) {
-            layer[neuronPosition] = new Neuron(parameters, new Sigmoid(), layerPosition, neuronPosition, layers);
+        Neuron[] layer = new Neuron[neuronSize];
+        for (int neuronPosition = 0; neuronPosition < neuronSize; neuronPosition++) {
+            layer[neuronPosition] = new Neuron(inputSize, new Sigmoid(), layerPosition, neuronPosition, layers);
         }
-
         layers.add(layer);
     }
 
@@ -55,7 +58,7 @@ public class MLP {
             Neuron[] layer = layers.get(i);
             for (int j = 0; j < layer.length; j++) {
                 Neuron neuron = layer[j];
-                neuron.initializeWeightsNBias();
+                neuron.initializeWeights();
             }
         }
     }
@@ -63,28 +66,47 @@ public class MLP {
     public synchronized TrainingState train(Dataset dataset, double learningRate, double maxError, Integer maxEpochs, Long maxTime) throws InputSizeException {
         TrainingState trainingState = new TrainingState(maxError, maxEpochs, maxTime);
         LossFunction lossFunction = new MeanSquaredError();
-        Runnable runnable = new Runnable() {
+        Runnable runnable;
+        runnable = new Runnable() {
             @Override
             public void run() {
                 try {
                     int datasetSize = dataset.getSize();
                     int epoch = 0;
+                    double datasetError = 0;
+                    double maxError = 0;
+                    double currentError = 0;
                     trainingState.startTraining();
                     while (true) {
-                        double datasetError = 0;
+                        datasetError = 0;
+                        maxError = 0;
+                        System.out.format("Epochs: %d ---------------------\n", epoch);
                         for (int i = 0; i < datasetSize; i++) {
-                            epoch++;
                             Sample sample = dataset.getSample(i);
                             feedForward(sample);
                             
-                            calculateError(dataset, sample);
+                            calculateError(sample);
                             datasetError += MLP.this.currentError;
                             
-                            if (trainingState.informCompleteEpoch(datasetError, 1)) {
-                                return;
+                            if(MLP.this.currentError > maxError){
+                                maxError = MLP.this.currentError;
                             }
+
                             backpropagate(learningRate, sample);
-                            displayOutput(sample, epoch, datasetError);
+                            displayOutput(sample, maxError);
+                        }
+                        epoch++;
+                        datasetError = datasetError / datasetSize;
+                        
+                        //System.out.println("Error: " + BigDecimal.valueOf(maxError).setScale(7, RoundingMode.HALF_EVEN).toPlainString() + " Epochs: " + epoch);
+                        if (trainingState.informCompleteEpoch(maxError, 1)) {
+                            System.out.format("Epochs: %d ---------------------\n", epoch);
+                            for (int i = 0; i < datasetSize; i++) {
+                                Sample sample = dataset.getSample(i);
+                                feedForward(sample);
+                                displayOutput(sample, maxError);
+                            }
+                            return;
                         }
                     }
                 } catch (Exception ex) {
@@ -103,7 +125,7 @@ public class MLP {
 
     private void feedForward(Sample sample) throws InputSizeException, NoSampleException {
 
-        double[] currentInput = sample.getFeatures();;
+        double[] currentInput = sample.getInput();;
 
         for (int i = 0; i < this.layers.size(); i++) {
             Neuron[] layer = this.layers.get(i);
@@ -126,34 +148,8 @@ public class MLP {
             Neuron[] neurons =  layers.get(i);
             for(int j = 0; j < neurons.length; j++){
                 Neuron neuron = neurons[j];
-
                 neuron.calculateDelta();
                 neuron.calculateCorrectionsFactor(learningRate);
-                
-//                int dentrites = neuron.dentrites();
-//                double outputValue = neuron.getOutput();
-//                
-//                
-//                int expectedActiveNeuron = sample.activateNeuron();
-//                double expectedValue = (expectedActiveNeuron == j ? 1: 0);
-//                        
-//                double[] ws = neuron.getWeights();
-//                for(int k = 0; k < dentrites; k++){
-//                    //double w = ws[k];
-//
-//                    double inputValue = neuron.getInputValue(k);
-//                    
-//                    double correction;
-//                    if(i == layers.size() - 1){
-//                        //OutputLayer
-//                        correction = calculateCorrectionFactorForOutputLayer(learningRate, expectedValue, outputValue, inputValue);
-//                    } else {
-//                        //HiddenLayer
-//                        double deltaForOutputLayer = deltaForOutputLayer(expectedValue, outputValue);
-//                        correction = calculateCorrectionFactorForHiddenLayer(deltaForOutputLayer, ws, inputValue, learningRate, outputValue);
-//                    }
-//                    neuron.setCorrection(k, correction);
-//                }
             }
         }
         
@@ -192,29 +188,33 @@ public class MLP {
         return correction;
     }
     
-    private void displayOutput(Sample sample, int epoch, double datasetError) throws IOException{
-        System.out.println("=================================================");
-        System.out.println("Epoch " + epoch + " Dataset error: " + datasetError);
+    private void displayOutput(Sample sample, double error) throws IOException{
         sample.write(System.out);
-        System.out.println("\tError: " + this.currentError);
+
         Neuron[] lastLayer = this.layers.get(this.layers.size() - 1);
+        System.out.print("\t");
         for(int i = 0; i < lastLayer.length; i++){
             Neuron neuron = lastLayer[i];
-            System.out.println("Neuron: " + i + "; Output: " + neuron.getOutput());
+            if(i > 0){
+                System.out.print(";");
+            }
+            System.out.format("%.6f", neuron.getOutput());
         }
+        System.out.format("\tError: %.4f\n", this.currentError);
     }
     
-    private void calculateError(Dataset dataset, Sample sample){
+    private void calculateError(Sample sample){
         LossFunction lossFunction = new MeanSquaredError();
-        int targetNeuronIndex = dataset.outputNeuronIndexForLabel(sample.getLabel());
         Neuron[] outputLayer = this.layers.get(this.layers.size() - 1);
         double totalError = 0;
         for(int i = 0; i < outputLayer.length; i++){
             Neuron neuron = outputLayer[i];
             double outputValue = neuron.getOutput();
-            double targetValue = (targetNeuronIndex == i ? 1: 0);
+            double targetValue = sample.getOutput()[i];
 
-            double error = lossFunction.calculate(targetValue, outputValue);
+            //double error = lossFunction.calculate(targetValue, outputValue);
+            
+            double error = targetValue - outputValue;
 
             neuron.setError(error);
             

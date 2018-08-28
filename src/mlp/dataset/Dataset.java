@@ -7,8 +7,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import mlp.exception.InvalidSampleFormat;
 
 /**
  *
@@ -17,22 +17,13 @@ import java.util.List;
 public class Dataset {
 
     private List<Sample> samples;
-    private HashMap<String, Integer> labelsMap;
     
-    public int outputNeuronIndexForLabel(String label){
-        return this.labelsMap.get(label);
-    }
     
     private Dataset(){}
     
     private void setSamples(List<Sample> samples){
         this.samples = samples;
     }
-    
-    private void setLabelsMap(HashMap<String, Integer> labelsMap){
-        this.labelsMap = labelsMap;
-    }
-
     
     public void write(OutputStream outputStream) throws IOException{
         for(int i = 0; i < samples.size(); i++){
@@ -57,43 +48,64 @@ public class Dataset {
         File file = new File(filePath);
         FileReader fileReader = new FileReader(file);
 
-        HashMap<String, Integer> labelsMap = new HashMap();
-        int lastLabelIndex = -1;
-        
-        int featuresQuantity = -1;
+        int featuresSize = -1;
+        int outputSize = -1;
         BufferedReader bufferedReader = new BufferedReader(fileReader);
         String line = bufferedReader.readLine();
         List<Sample> samples = new ArrayList();
         Dataset dataset = new Dataset();
         while(line != null){
 
-            String[] splitted = line.split("\t");
-            
-            if(featuresQuantity == -1){
-                featuresQuantity = splitted.length - 1;
-            } else if(featuresQuantity != splitted.length - 1){
-                throw new Exception("Features quantity differs from sample to sample");
+            line = line.trim();
+
+            if(line.startsWith("#") || line.isEmpty()){
+                continue;
             }
             
-            String label = splitted[0];
-            double[] features = new double[featuresQuantity];
-            for(int i = 1; i < splitted.length; i++){
-                double feature = Double.parseDouble(splitted[i]);
-                features[i - 1] = feature;
+            String[] inputOutput = line.split("\\|");
+            if(inputOutput.length != 2){
+                throw new InvalidSampleFormat(line);
             }
             
-            if(labelsMap.containsKey(label) == false){
-                lastLabelIndex++;
-                labelsMap.put(label, lastLabelIndex);
+            String[] input = inputOutput[0].split(";");
+            if(input.length == 0){
+                throw new InvalidSampleFormat(line);
             }
             
-            Sample sample = new Sample(label, features, dataset);
+            String[] output = inputOutput[1].split(";");
+            if(output.length == 0){
+                throw new InvalidSampleFormat(line);
+            }
+
+            if(featuresSize == -1){
+                featuresSize = input.length;
+            } else if(featuresSize != input.length){
+                throw new Exception("Features size differs from sample to sample");
+            }
+            
+            if(outputSize == -1){
+                outputSize = output.length;
+            } else if(outputSize != output.length){
+                throw new Exception("Output size differs from sample to sample");
+            }
+            
+            double[] dInput = new double[featuresSize];
+            for(int i = 0; i < input.length; i++){
+                dInput[i] = Double.parseDouble(input[i]);
+            }
+
+            double[] dOutput = new double[outputSize];
+            for(int i = 0; i < output.length; i++){
+                dOutput[i] = Double.parseDouble(output[i]);
+            }
+            
+            Sample sample = new Sample(dInput, dOutput);
             samples.add(sample);
             
             line = bufferedReader.readLine();
         }
         dataset.setSamples(samples);
-        dataset.setLabelsMap(labelsMap);
+
         return dataset;
     }    
 }
